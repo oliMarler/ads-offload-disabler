@@ -1,0 +1,177 @@
+2026-09-23T13:21:04.9329778+01:00  Watching ADS (PID 26908).
+2026-09-23T13:21:05.4737908+01:00  Ticked 'Disable Next Offload'.
+2026-09-23T13:21:17.5533413+01:00  Offload allowed from the window.
+2026-09-23T13:21:17.5543420+01:00  Unticked 'Disable Next Offload'.
+2026-09-23T13:21:20.0418661+01:00  Offloads disabled again from the window.
+2026-09-23T13:21:20.0438654+01:00  Ticked 'Disable Next Offload'.
+2026-09-23T13:21:20.9036938+01:00  Offload allowed from the window.
+2026-09-23T13:21:20.9046944+01:00  Unticked 'Disable Next Offload'.
+2026-09-23T13:21:21.2960662+01:00  Offloads disabled again from the window.
+2026-09-23T13:21:21.2980657+01:00  Ticked 'Disable Next Offload'.
+2026-09-23T13:21:29.6383328+01:00  Another watcher is already running; exiting.
+2026-09-23T13:21:34.0397523+01:00  Offload allowed from the window.
+2026-09-23T13:21:34.0417716+01:00  Unticked 'Disable Next Offload'.
+2026-09-23T13:21:34.6567530+01:00  Offloads disabled again from the window.
+2026-09-23T13:21:34.6577527+01:00  Ticked 'Disable Next Offload'.
+2026-09-23T13:23:48.9936303+01:00  Another watcher is already running; exiting.
+2026-09-23T13:24:22.1443306+01:00  Another watcher is already running; exiting.
+2026-09-23T13:24:26.9446010+01:00  Offload allowed from the window.
+2026-09-23T13:24:26.9456010+01:00  Unticked 'Disable Next Offload'.
+2026-09-23T13:24:28.0559653+01:00  Offloads disabled again from the window.
+2026-09-23T13:24:28.0579707+01:00  Ticked 'Disable Next Offload'.
+2026-09-23T13:25:30.4960161+01:00  Another watcher is already running; exiting.
+2026-09-23T13:25:37.6427348+01:00  Another watcher is already running; exiting.
+2026-09-23T13:26:33.0038544+01:00  Another watcher is already running; exiting.
+2026-09-23T13:26:36.0518733+01:00  Another watcher is already running; exiting.
+2026-09-23T13:29:16.4708623+01:00  Another watcher is already running; exiting.
+2026-09-23T13:29:36.2187174+01:00  ADS closed.
+2026-09-23T13:30:00.3324250+01:00  Watching ADS (PID 43832).
+2026-09-23T13:30:00.6460501+01:00  Ticked 'Disable Next Offload'.
+2026-09-23T13:30:02.2969818+01:00  Offload allowed from the window.
+2026-09-23T13:30:02.2979598+01:00  Unticked 'Disable Next Offload'.
+2026-09-23T13:30:03.2003076+01:00  Offloads disabled again from the window.
+2026-09-23T13:30:03.2023050+01:00  Ticked 'Disable Next Offload'.
+2026-09-23T13:31:03.8917218+01:00  ADS closed.
+2026-09-23T13:31:36.0932801+01:00  Starting C:\Program Files (x86)\McLaren Applied Technologies\ATLAS Data Server\Bin\AtlasDataServer.exe
+2026-09-23T13:31:45.5203419+01:00  Watching ADS (PID 2056).
+2026-09-23T13:31:45.8046477+01:00  Ticked 'Disable Next Offload'.
+2026-09-23T13:32:10.7975724+01:00  ADS closed.
+2026-09-23T13:32:32.0416240+01:00  Watching ADS (PID 38600).
+2026-09-23T13:32:32.3192054+01:00  Ticked 'Disable Next Offload'.
+2026-09-23T13:33:24.4903696+01:00  Another watcher is already running; exiting.
+2026-09-23T13:33:34.8125174+01:00  ADS closed.
+2026-09-23T13:33:57.2957285+01:00  Watching ADS (PID 16636).
+2026-09-23T13:33:57.6421706+01:00  Ticked 'Disable Next Offload'.
+2026-09-23T13:35:29.4146756+01:00  Ticked 'Disable Next Offload'.
+2026-09-23T13:35:56.5949595+01:00  Ticked 'Disable Next Offload'.
+2026-09-23T13:36:18.8222552+01:00  Ticked 'Disable Next Offload'.
+2026-09-23T13:36:38.1445058+01:00  Ticked 'Disable Next Offload'.
+2026-09-23T13:36:39.8919489+01:00  Ticked 'Disable Next Offload'.
+2026-09-23T13:36:40.8930347+01:00  Ticked 'Disable Next Offload'.
+2026-09-23T13:36:41.8938564+01:00  Ticked 'Disable Next Offload'.
+2026-09-23T13:36:42.8911884+01:00  Ticked 'Disable Next Offload'.
+2026-09-23T13:37:09.2628406+01:00  Ticked 'Disable Next Offload'.
+2026-09-23T13:37:24.6430241+01:00  ADS closed.
+2026-09-23T13:37:42.5105182+01:00  ERROR: c:\Users\ZackMills\AppData\Local\Temp\5rdi3cx0.0.cs(130) : Warning as Error: The field 'AdsAuto.OffloadDisabler.ControlWindow.allowClose' is assigned but its value is never used
+
+c:\Users\ZackMills\AppData\Local\Temp\5rdi3cx0.0.cs(129) :             private bool keepDisabled = true;
+
+c:\Users\ZackMills\AppData\Local\Temp\5rdi3cx0.0.cs(130) : >>>             private bool allowClose;
+
+c:\Users\ZackMills\AppData\Local\Temp\5rdi3cx0.0.cs(131) : 
+
+2026-09-23T13:38:13.0565274+01:00  ERROR: c:\Users\ZackMills\AppData\Local\Temp\fpdx13gy.0.cs(130) : Warning as Error: The field 'AdsAuto.OffloadDisabler.ControlWindow.allowClose' is assigned but its value is never used
+
+c:\Users\ZackMills\AppData\Local\Temp\fpdx13gy.0.cs(129) :             private bool keepDisabled = true;
+
+c:\Users\ZackMills\AppData\Local\Temp\fpdx13gy.0.cs(130) : >>>             private bool allowClose;
+
+c:\Users\ZackMills\AppData\Local\Temp\fpdx13gy.0.cs(131) : 
+
+2026-09-23T13:39:05.0621534+01:00  ERROR: c:\Users\ZackMills\AppData\Local\Temp\sazrj3wr.0.cs(139) : Warning as Error: The field 'AdsAuto.OffloadDisabler.ControlWindow.allowClose' is assigned but its value is never used
+
+c:\Users\ZackMills\AppData\Local\Temp\sazrj3wr.0.cs(138) :             private bool keepDisabled = true;
+
+c:\Users\ZackMills\AppData\Local\Temp\sazrj3wr.0.cs(139) : >>>             private bool allowClose;
+
+c:\Users\ZackMills\AppData\Local\Temp\sazrj3wr.0.cs(140) : 
+
+2026-09-23T13:39:15.2430462+01:00  ERROR: c:\Users\ZackMills\AppData\Local\Temp\pgnh101h.0.cs(139) : Warning as Error: The field 'AdsAuto.OffloadDisabler.ControlWindow.allowClose' is assigned but its value is never used
+
+c:\Users\ZackMills\AppData\Local\Temp\pgnh101h.0.cs(138) :             private bool keepDisabled = true;
+
+c:\Users\ZackMills\AppData\Local\Temp\pgnh101h.0.cs(139) : >>>             private bool allowClose;
+
+c:\Users\ZackMills\AppData\Local\Temp\pgnh101h.0.cs(140) : 
+
+2026-09-23T13:39:48.8091599+01:00  ERROR: c:\Users\ZackMills\AppData\Local\Temp\mjgwfnuj.0.cs(139) : Warning as Error: The field 'AdsAuto.OffloadDisabler.ControlWindow.allowClose' is assigned but its value is never used
+
+c:\Users\ZackMills\AppData\Local\Temp\mjgwfnuj.0.cs(138) :             private bool keepDisabled = true;
+
+c:\Users\ZackMills\AppData\Local\Temp\mjgwfnuj.0.cs(139) : >>>             private bool allowClose;
+
+c:\Users\ZackMills\AppData\Local\Temp\mjgwfnuj.0.cs(140) : 
+
+2026-09-23T13:40:25.4757795+01:00  ERROR: c:\Users\ZackMills\AppData\Local\Temp\0zk413cf.0.cs(272) : The name 'allowClose' does not exist in the current context
+
+c:\Users\ZackMills\AppData\Local\Temp\0zk413cf.0.cs(271) :             {
+
+c:\Users\ZackMills\AppData\Local\Temp\0zk413cf.0.cs(272) : >>>                 allowClose = true;
+
+c:\Users\ZackMills\AppData\Local\Temp\0zk413cf.0.cs(273) :                 poll.Stop();
+
+2026-09-23T13:40:35.0543715+01:00  ERROR: c:\Users\ZackMills\AppData\Local\Temp\e1uwjk04.0.cs(272) : The name 'allowClose' does not exist in the current context
+
+c:\Users\ZackMills\AppData\Local\Temp\e1uwjk04.0.cs(271) :             {
+
+c:\Users\ZackMills\AppData\Local\Temp\e1uwjk04.0.cs(272) : >>>                 allowClose = true;
+
+c:\Users\ZackMills\AppData\Local\Temp\e1uwjk04.0.cs(273) :                 poll.Stop();
+
+2026-09-23T13:41:12.6610109+01:00  ERROR: c:\Users\ZackMills\AppData\Local\Temp\oraapno3.0.cs(272) : The name 'allowClose' does not exist in the current context
+
+c:\Users\ZackMills\AppData\Local\Temp\oraapno3.0.cs(271) :             {
+
+c:\Users\ZackMills\AppData\Local\Temp\oraapno3.0.cs(272) : >>>                 allowClose = true;
+
+c:\Users\ZackMills\AppData\Local\Temp\oraapno3.0.cs(273) :                 poll.Stop();
+
+2026-09-23T13:41:37.7273661+01:00  Starting C:\Program Files (x86)\McLaren Applied Technologies\ATLAS Data Server\Bin\AtlasDataServer.exe
+2026-09-23T13:41:38.3790944+01:00  Watching ADS (PID 36452).
+2026-09-23T13:41:39.8942880+01:00  ADS closed.
+2026-09-23T13:42:04.8093305+01:00  Watching ADS (PID 30296).
+2026-09-23T13:42:05.1639837+01:00  Ticked 'Disable Next Offload'.
+2026-09-23T13:42:09.9541985+01:00  Offload allowed from the window.
+2026-09-23T13:42:09.9616262+01:00  Unticked 'Disable Next Offload'.
+2026-09-23T13:42:11.8108563+01:00  Offloads disabled again from the window.
+2026-09-23T13:42:12.2833917+01:00  Offload allowed from the window.
+2026-09-23T13:42:12.2843909+01:00  Unticked 'Disable Next Offload'.
+2026-09-23T13:42:13.0264690+01:00  Offloads disabled again from the window.
+2026-09-23T13:42:13.0284670+01:00  Ticked 'Disable Next Offload'.
+2026-09-23T13:42:13.5458466+01:00  Offload allowed from the window.
+2026-09-23T13:42:13.5468466+01:00  Unticked 'Disable Next Offload'.
+2026-09-23T13:42:13.9853273+01:00  Offloads disabled again from the window.
+2026-09-23T13:42:13.9883286+01:00  Ticked 'Disable Next Offload'.
+2026-09-23T13:42:14.4961021+01:00  Offload allowed from the window.
+2026-09-23T13:42:14.4970773+01:00  Unticked 'Disable Next Offload'.
+2026-09-23T13:42:14.9293564+01:00  Offloads disabled again from the window.
+2026-09-23T13:42:14.9303578+01:00  Ticked 'Disable Next Offload'.
+2026-09-23T13:42:15.4008929+01:00  Offload allowed from the window.
+2026-09-23T13:42:15.4018789+01:00  Unticked 'Disable Next Offload'.
+2026-09-23T13:42:15.8084780+01:00  Offloads disabled again from the window.
+2026-09-23T13:42:15.8094858+01:00  Ticked 'Disable Next Offload'.
+2026-09-23T13:42:20.1536503+01:00  Watching ADS (PID 30296).
+2026-09-23T13:42:22.6909034+01:00  Offload allowed from the window.
+2026-09-23T13:42:22.6969455+01:00  Unticked 'Disable Next Offload'.
+2026-09-23T13:42:24.4963556+01:00  Offloads disabled again from the window.
+2026-09-23T13:42:25.2976850+01:00  Offload allowed from the window.
+2026-09-23T13:42:25.2986861+01:00  Unticked 'Disable Next Offload'.
+2026-09-23T13:42:25.8246216+01:00  Offloads disabled again from the window.
+2026-09-23T13:42:25.8276207+01:00  Ticked 'Disable Next Offload'.
+2026-09-23T13:43:05.1376821+01:00  Offload allowed from the window.
+2026-09-23T13:43:05.1387499+01:00  Unticked 'Disable Next Offload'.
+2026-09-23T13:43:05.6647639+01:00  Offloads disabled again from the window.
+2026-09-23T13:43:05.6657671+01:00  Ticked 'Disable Next Offload'.
+2026-09-23T13:43:06.2010271+01:00  Offload allowed from the window.
+2026-09-23T13:43:06.2020278+01:00  Unticked 'Disable Next Offload'.
+2026-09-23T13:43:10.5529228+01:00  Offloads disabled again from the window.
+2026-09-23T13:43:10.5549763+01:00  Ticked 'Disable Next Offload'.
+2026-09-23T13:43:41.0254612+01:00  Starting C:\Program Files (x86)\McLaren Applied Technologies\ATLAS Data Server\Bin\AtlasDataServer.exe
+2026-09-23T13:43:42.2068510+01:00  Watching ADS (PID 31188).
+2026-09-23T13:43:45.7216932+01:00  ADS closed.
+2026-09-23T13:44:25.2491204+01:00  Watching ADS (PID 40732).
+2026-09-23T13:44:25.6027018+01:00  Ticked 'Disable Next Offload'.
+2026-09-23T13:44:27.2733555+01:00  Offload allowed from the window.
+2026-09-23T13:44:27.2760632+01:00  Unticked 'Disable Next Offload'.
+2026-09-23T13:44:30.3614219+01:00  Offloads disabled again from the window.
+2026-09-23T13:44:30.3624183+01:00  Ticked 'Disable Next Offload'.
+2026-09-23T13:45:13.2248014+01:00  Watching ADS (PID 40732).
+2026-09-23T13:45:13.5093688+01:00  Ticked 'Disable Next Offload'.
+2026-09-23T13:45:41.1999451+01:00  Ticked 'Disable Next Offload'.
+2026-09-23T13:46:18.2827335+01:00  Ticked 'Disable Next Offload'.
+2026-09-23T13:46:50.8248875+01:00  Offload allowed from the window.
+2026-09-23T13:46:50.8268732+01:00  Unticked 'Disable Next Offload'.
+2026-09-23T13:47:20.8805955+01:00  Offloads disabled again from the window.
+2026-09-23T13:47:21.1998783+01:00  Ticked 'Disable Next Offload'.
+2026-09-23T13:47:21.2038793+01:00  Ticked 'Disable Next Offload'.
+2026-09-23T13:48:05.4439816+01:00  Ticked 'Disable Next Offload'.

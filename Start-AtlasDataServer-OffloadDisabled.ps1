@@ -130,6 +130,7 @@ namespace AdsAuto
 
         // Small window shown beside ADS: polls the checkbox, and its button lets the customer allow an
         // offload (unticks the box and stops re-ticking it) or go back to disabling offloads.
+        // This script does not launch ADS itself; it only interfaces with an already-running ADS window.
         private sealed class ControlWindow : Form
         {
             [StructLayout(LayoutKind.Sequential)]
@@ -150,7 +151,6 @@ namespace AdsAuto
             private readonly System.Windows.Forms.Timer poll;
             private IntPtr checkbox;
             private bool keepDisabled = true;
-            private bool allowClose;
 
             public Exception Failure { get; private set; }
 
@@ -164,18 +164,33 @@ namespace AdsAuto
                 Font = new Font("Segoe UI", 10F);
                 FormBorderStyle = FormBorderStyle.FixedSingle;
                 MaximizeBox = false;
-                AutoSize = true;
-                AutoSizeMode = AutoSizeMode.GrowAndShrink;
-                Padding = new Padding(12);
+                MinimizeBox = true;
+                StartPosition = FormStartPosition.Manual;
+                AutoSize = false;
+                Size = new Size(340, 150);
+                MinimumSize = new Size(340, 150);
+                MaximumSize = new Size(340, 150);
+                Padding = new Padding(10);
 
-                status = new Label { AutoSize = true, Font = new Font(Font, FontStyle.Bold), Margin = new Padding(0, 0, 0, 12) };
-                toggle = new Button { AutoSize = true, MinimumSize = new Size(160, 0), Padding = new Padding(6, 3, 6, 3) };
+                status = new Label
+                {
+                    Width = 260,
+                    Height = 28,
+                    Font = new Font(Font, FontStyle.Bold),
+                    TextAlign = ContentAlignment.MiddleCenter,
+                    AutoEllipsis = true,
+                    BackColor = Color.Transparent,
+                    ForeColor = Color.DarkGreen
+                };
+                toggle = new Button
+                {
+                    Width = 175,
+                    Height = 30,
+                    Padding = new Padding(6, 3, 6, 3)
+                };
                 toggle.Click += delegate { Guard(Toggle); };
-
-                var layout = new FlowLayoutPanel { FlowDirection = FlowDirection.TopDown, AutoSize = true };
-                layout.Controls.Add(status);
-                layout.Controls.Add(toggle);
-                Controls.Add(layout);
+                Controls.Add(status);
+                Controls.Add(toggle);
                 UpdateView();
 
                 poll = new System.Windows.Forms.Timer { Interval = pollIntervalMs };
@@ -186,6 +201,11 @@ namespace AdsAuto
             protected override void OnLoad(EventArgs e)
             {
                 base.OnLoad(e);
+                status.Left = (ClientSize.Width - status.Width) / 2;
+                status.Top = 20;
+                toggle.Left = (ClientSize.Width - toggle.Width) / 2;
+                toggle.Top = 58;
+
                 RECT r;
                 IntPtr adsWindow = CurrentMainWindow(ads);
                 if (adsWindow == IntPtr.Zero || !GetWindowRect(adsWindow, out r)) return;
@@ -203,12 +223,8 @@ namespace AdsAuto
 
             protected override void OnFormClosing(FormClosingEventArgs e)
             {
-                // Closing by hand would silently stop re-ticking for the rest of the session, so minimise instead.
-                if (!allowClose && e.CloseReason == CloseReason.UserClosing)
-                {
-                    e.Cancel = true;
-                    WindowState = FormWindowState.Minimized;
-                }
+                // Allow the X button to close the helper normally.
+                // If ADS exits, the watcher already calls Finish() and closes cleanly.
                 base.OnFormClosing(e);
             }
 
@@ -230,26 +246,42 @@ namespace AdsAuto
 
             private void Toggle()
             {
-                keepDisabled = !keepDisabled;
-                UpdateView();
                 if (keepDisabled)
                 {
-                    Log("Offloads disabled again from the window.");
-                    Poll();
+                    Log("Offload allowed from the window.");
+                    if (!RefreshCheckbox())
+                    {
+                        Log("Couldn't find '" + CheckboxText + "' to untick.");
+                        MessageBox.Show(this, "Couldn't find 'Disable Next Offload' - untick it in ADS.", Text,
+                            MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                        return;
+                    }
+
+                    int? state = GetCheckState(checkbox);
+                    if (state == 0)
+                    {
+                        keepDisabled = false;
+                        UpdateView();
+                        return;
+                    }
+                    if (state == 1 && IsOffloadCheckbox(checkbox, ads.Id) && ClickCheckbox(checkbox))
+                    {
+                        keepDisabled = false;
+                        UpdateView();
+                        Log("Unticked '" + CheckboxText + "'.");
+                        return;
+                    }
+
+                    Log("Couldn't untick '" + CheckboxText + "'.");
+                    MessageBox.Show(this, "Couldn't untick 'Disable Next Offload' - untick it in ADS.", Text,
+                        MessageBoxButtons.OK, MessageBoxIcon.Warning);
                     return;
                 }
 
-                Log("Offload allowed from the window.");
-                int? state = RefreshCheckbox() ? GetCheckState(checkbox) : null;
-                if (state == 0) return;
-                if (state == 1 && IsOffloadCheckbox(checkbox, ads.Id) && ClickCheckbox(checkbox))
-                {
-                    Log("Unticked '" + CheckboxText + "'.");
-                    return;
-                }
-                Log("Couldn't untick '" + CheckboxText + "'.");
-                MessageBox.Show(this, "Couldn't untick 'Disable Next Offload' - untick it in ADS.", Text,
-                    MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                keepDisabled = true;
+                UpdateView();
+                Log("Offloads disabled again from the window.");
+                Poll();
             }
 
             private bool RefreshCheckbox()
@@ -268,7 +300,6 @@ namespace AdsAuto
 
             private void Finish()
             {
-                allowClose = true;
                 poll.Stop();
                 Close();
             }
