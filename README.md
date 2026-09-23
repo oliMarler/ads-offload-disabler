@@ -16,7 +16,7 @@ for as long as ADS stays open, re-ticking it any time it flips back off.
   `AtlasDataServer.exe`, waits for its window, finds the "Disable Next
   Offload" checkbox via Win32 window messages (`BM_GETCHECK` / `BM_CLICK`,
   sent with a timeout so a busy ADS can't hang it), and checks it every
-  250 ms for the lifetime of the process.
+  250 ms for the lifetime of the process. Also shows the tray menu below.
 - `Start-ADS-Silent.vbs` — invisible launcher wrapper (runs the PowerShell
   script with no console window; PowerShell's own `-WindowStyle Hidden`
   isn't reliably honored under Windows Terminal as the default console
@@ -33,6 +33,17 @@ for as long as ADS stays open, re-ticking it any time it flips back off.
    - Working directory: the ADS `Bin` folder
    - Icon: `AtlasDataServer.exe,0`
 4. Use that shortcut instead of the normal ADS icon.
+
+## Allowing an offload
+
+While ADS is open, an ADS icon sits in the system tray (Windows 11 may tuck
+it under the `^` overflow arrow; drag it onto the taskbar to keep it
+visible). Right-click it and untick **Keep next offload disabled** to let
+an offload happen: the "Disable Next Offload" box in ADS is unticked and
+left alone, and the tray icon changes to a warning sign. Tick it again to
+go back to disabling offloads.
+
+Every ADS launch starts with offloads disabled.
 
 ## When something goes wrong
 
