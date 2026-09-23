@@ -64,7 +64,7 @@ namespace AdsAuto
                     return;
                 }
 
-                // The tray icon needs an STA thread with a message loop; the PowerShell host thread may be neither.
+                // The window needs an STA thread with a message loop; the PowerShell host thread may be neither.
                 Exception failure = null;
                 var ui = new Thread(() =>
                 {
@@ -119,48 +119,97 @@ namespace AdsAuto
                     throw new InvalidOperationException("Couldn't find the '" + CheckboxText +
                         "' checkbox in ADS - its label may have changed in an ADS update.");
 
-                using (var session = new Session(ads, checkbox, launcherPath, pollIntervalMs))
+                Application.EnableVisualStyles();
+                using (var window = new ControlWindow(ads, checkbox, launcherPath, pollIntervalMs))
                 {
-                    Application.Run(session);
-                    if (session.Failure != null) throw session.Failure;
+                    Application.Run(window);
+                    if (window.Failure != null) throw window.Failure;
                 }
             }
         }
 
-        // One ADS run: polls the checkbox and shows a tray menu whose "Keep next offload disabled"
-        // toggle lets the customer take an offload (unticks the box and stops re-ticking it).
-        private sealed class Session : ApplicationContext
+        // Small window shown beside ADS: polls the checkbox, and its button lets the customer allow an
+        // offload (unticks the box and stops re-ticking it) or go back to disabling offloads.
+        private sealed class ControlWindow : Form
         {
-            private const string Title = "ADS Offload Disabler";
+            [StructLayout(LayoutKind.Sequential)]
+            private struct RECT { public int Left, Top, Right, Bottom; }
+
+            [DllImport("user32.dll")]
+            private static extern bool GetWindowRect(IntPtr hWnd, out RECT rect);
+
+            [DllImport("user32.dll")]
+            private static extern bool ShowWindow(IntPtr hWnd, int cmdShow);
+
+            private const int SW_SHOWNOACTIVATE = 4;
 
             private readonly Process ads;
             private readonly Icon adsIcon;
-            private readonly NotifyIcon tray;
-            private readonly ToolStripMenuItem keepDisabledItem;
+            private readonly Label status;
+            private readonly Button toggle;
             private readonly System.Windows.Forms.Timer poll;
             private IntPtr checkbox;
             private bool keepDisabled = true;
+            private bool allowClose;
 
             public Exception Failure { get; private set; }
 
-            public Session(Process ads, IntPtr checkbox, string launcherPath, int pollIntervalMs)
+            public ControlWindow(Process ads, IntPtr checkbox, string launcherPath, int pollIntervalMs)
             {
                 this.ads = ads;
                 this.checkbox = checkbox;
                 adsIcon = File.Exists(launcherPath) ? Icon.ExtractAssociatedIcon(launcherPath) : SystemIcons.Application;
 
-                keepDisabledItem = new ToolStripMenuItem("Keep next offload disabled") { Checked = true, CheckOnClick = true };
-                keepDisabledItem.CheckedChanged += delegate { Guard(OnToggle); };
-                var menu = new ContextMenuStrip();
-                menu.Items.Add(keepDisabledItem);
+                Text = "ADS Offload Disabler";
+                Font = new Font("Segoe UI", 10F);
+                FormBorderStyle = FormBorderStyle.FixedSingle;
+                MaximizeBox = false;
+                AutoSize = true;
+                AutoSizeMode = AutoSizeMode.GrowAndShrink;
+                Padding = new Padding(12);
 
-                tray = new NotifyIcon { ContextMenuStrip = menu, Visible = true };
-                UpdateTray();
-                tray.ShowBalloonTip(5000, Title, "Next offload is disabled. Right-click this icon to allow offloads.", ToolTipIcon.Info);
+                status = new Label { AutoSize = true, Font = new Font(Font, FontStyle.Bold), Margin = new Padding(0, 0, 0, 12) };
+                toggle = new Button { AutoSize = true, MinimumSize = new Size(160, 0), Padding = new Padding(6, 3, 6, 3) };
+                toggle.Click += delegate { Guard(Toggle); };
+
+                var layout = new FlowLayoutPanel { FlowDirection = FlowDirection.TopDown, AutoSize = true };
+                layout.Controls.Add(status);
+                layout.Controls.Add(toggle);
+                Controls.Add(layout);
+                UpdateView();
 
                 poll = new System.Windows.Forms.Timer { Interval = pollIntervalMs };
                 poll.Tick += delegate { Guard(Poll); };
                 poll.Start();
+            }
+
+            protected override void OnLoad(EventArgs e)
+            {
+                base.OnLoad(e);
+                RECT r;
+                IntPtr adsWindow = CurrentMainWindow(ads);
+                if (adsWindow == IntPtr.Zero || !GetWindowRect(adsWindow, out r)) return;
+                Rectangle area = Screen.FromHandle(adsWindow).WorkingArea;
+                Location = new Point(Math.Min(r.Right + 8, area.Right - Width), Math.Max(r.Top, area.Top));
+            }
+
+            protected override void OnShown(EventArgs e)
+            {
+                base.OnShown(e);
+                // The VBS starts us hidden, and Windows applies that to our first top-level window;
+                // the second ShowWindow isn't overridden.
+                ShowWindow(Handle, SW_SHOWNOACTIVATE);
+            }
+
+            protected override void OnFormClosing(FormClosingEventArgs e)
+            {
+                // Closing by hand would silently stop re-ticking for the rest of the session, so minimise instead.
+                if (!allowClose && e.CloseReason == CloseReason.UserClosing)
+                {
+                    e.Cancel = true;
+                    WindowState = FormWindowState.Minimized;
+                }
+                base.OnFormClosing(e);
             }
 
             private void Poll()
@@ -168,38 +217,39 @@ namespace AdsAuto
                 if (ads.HasExited)
                 {
                     Log("ADS closed.");
-                    ExitThread();
+                    Finish();
                     return;
                 }
                 // Re-validate after reading: BM_GETCHECK to a window destroyed mid-send reads back as 0.
                 if (keepDisabled && RefreshCheckbox() && GetCheckState(checkbox) == 0 && IsOffloadCheckbox(checkbox, ads.Id))
                 {
-                    if (Click(checkbox)) Log("Ticked '" + CheckboxText + "'.");
+                    if (ClickCheckbox(checkbox)) Log("Ticked '" + CheckboxText + "'.");
                     else Log("ADS didn't respond to the tick; will retry.");
                 }
             }
 
-            private void OnToggle()
+            private void Toggle()
             {
-                keepDisabled = keepDisabledItem.Checked;
-                UpdateTray();
+                keepDisabled = !keepDisabled;
+                UpdateView();
                 if (keepDisabled)
                 {
-                    Log("Auto-disable turned on.");
+                    Log("Offloads disabled again from the window.");
                     Poll();
                     return;
                 }
 
-                Log("Auto-disable turned off; offloads allowed.");
+                Log("Offload allowed from the window.");
                 int? state = RefreshCheckbox() ? GetCheckState(checkbox) : null;
                 if (state == 0) return;
-                if (state == 1 && IsOffloadCheckbox(checkbox, ads.Id) && Click(checkbox))
+                if (state == 1 && IsOffloadCheckbox(checkbox, ads.Id) && ClickCheckbox(checkbox))
                 {
                     Log("Unticked '" + CheckboxText + "'.");
                     return;
                 }
                 Log("Couldn't untick '" + CheckboxText + "'.");
-                tray.ShowBalloonTip(5000, Title, "Couldn't untick 'Disable Next Offload' - untick it in ADS.", ToolTipIcon.Warning);
+                MessageBox.Show(this, "Couldn't untick 'Disable Next Offload' - untick it in ADS.", Text,
+                    MessageBoxButtons.OK, MessageBoxIcon.Warning);
             }
 
             private bool RefreshCheckbox()
@@ -208,11 +258,19 @@ namespace AdsAuto
                 return checkbox != IntPtr.Zero;
             }
 
-            private void UpdateTray()
+            private void UpdateView()
             {
-                tray.Icon = keepDisabled ? adsIcon : SystemIcons.Warning;
-                tray.Text = keepDisabled ? "ADS: next offload disabled - right-click to change"
-                                         : "ADS: offloads allowed - right-click to change";
+                Icon = keepDisabled ? adsIcon : SystemIcons.Warning;
+                status.Text = keepDisabled ? "Next offload: DISABLED" : "Next offload: ALLOWED";
+                status.ForeColor = keepDisabled ? Color.DarkGreen : Color.OrangeRed;
+                toggle.Text = keepDisabled ? "Allow offload" : "Disable offload";
+            }
+
+            private void Finish()
+            {
+                allowClose = true;
+                poll.Stop();
+                Close();
             }
 
             private void Guard(Action action)
@@ -221,24 +279,13 @@ namespace AdsAuto
                 catch (Exception ex)
                 {
                     Failure = ex;
-                    ExitThread();
+                    Finish();
                 }
-            }
-
-            protected override void ExitThreadCore()
-            {
-                poll.Stop();
-                tray.Visible = false;
-                base.ExitThreadCore();
             }
 
             protected override void Dispose(bool disposing)
             {
-                if (disposing)
-                {
-                    poll.Dispose();
-                    tray.Dispose();
-                }
+                if (disposing) poll.Dispose();
                 base.Dispose(disposing);
             }
         }
@@ -297,7 +344,7 @@ namespace AdsAuto
             return state.ToInt32();
         }
 
-        private static bool Click(IntPtr checkbox)
+        private static bool ClickCheckbox(IntPtr checkbox)
         {
             IntPtr ignored;
             return SendMessageTimeout(checkbox, BM_CLICK, IntPtr.Zero, IntPtr.Zero,
@@ -315,7 +362,7 @@ namespace AdsAuto
 try {
     Add-Type -AssemblyName System.Windows.Forms, System.Drawing
     $refs = [System.Diagnostics.Process], [string], [System.Threading.Mutex], [System.IO.File],
-            [System.Windows.Forms.NotifyIcon], [System.Drawing.Icon] |
+            [System.Windows.Forms.Form], [System.Drawing.Icon] |
         ForEach-Object { $_.Assembly.Location } | Select-Object -Unique
     Add-Type -TypeDefinition $source -Language CSharp -ReferencedAssemblies $refs
     [AdsAuto.OffloadDisabler]::Run($LauncherPath, $TimeoutSeconds, $PollIntervalMs, $LogPath)
