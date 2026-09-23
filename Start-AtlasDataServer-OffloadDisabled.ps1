@@ -5,122 +5,199 @@ on every launch and offers no persisted setting for it, so this clicks it
 programmatically instead of you doing it by hand each time.
 #>
 
+$ErrorActionPreference = 'Stop'
+
 $LauncherPath = 'C:\Program Files (x86)\McLaren Applied Technologies\ATLAS Data Server\Bin\AtlasDataServer.exe'
 $TimeoutSeconds = 90
+$PollIntervalMs = 250
+$LogPath = Join-Path $PSScriptRoot 'run.log'
 
 $source = @'
 using System;
-using System.Text;
 using System.Diagnostics;
+using System.IO;
 using System.Runtime.InteropServices;
+using System.Text;
 using System.Threading;
 
 namespace AdsAuto
 {
     public static class OffloadDisabler
     {
-        [DllImport("user32.dll")]
-        private static extern bool EnumChildWindows(IntPtr hWndParent, EnumWindowsProc lpEnumFunc, IntPtr lParam);
+        private const string CheckboxText = "Disable Next Offload";
+        private const int BM_GETCHECK = 0x00F0;
+        private const int BM_CLICK = 0x00F5;
+        private const uint SMTO_ABORTIFHUNG = 0x0002;
+        private const uint SendTimeoutMs = 2000;
 
         private delegate bool EnumWindowsProc(IntPtr hWnd, IntPtr lParam);
 
-        [DllImport("user32.dll", CharSet = CharSet.Auto)]
+        [DllImport("user32.dll")]
+        private static extern bool EnumChildWindows(IntPtr hWndParent, EnumWindowsProc lpEnumFunc, IntPtr lParam);
+
+        [DllImport("user32.dll", CharSet = CharSet.Unicode)]
         private static extern int GetWindowText(IntPtr hWnd, StringBuilder lpString, int nMaxCount);
 
         [DllImport("user32.dll")]
-        private static extern int SendMessage(IntPtr hWnd, int Msg, int wParam, int lParam);
+        private static extern uint GetWindowThreadProcessId(IntPtr hWnd, out uint processId);
 
-        private const int BM_GETCHECK = 0x00F0;
-        private const int BM_CLICK = 0x00F5;
+        [DllImport("user32.dll")]
+        private static extern IntPtr SendMessageTimeout(IntPtr hWnd, int msg, IntPtr wParam, IntPtr lParam,
+            uint flags, uint timeoutMs, out IntPtr result);
 
-        private static IntPtr FindCheckbox(IntPtr mainWindow)
+        private static string logPath;
+
+        public static void Run(string launcherPath, int timeoutSeconds, int pollIntervalMs, string logFile)
         {
-            IntPtr checkbox = IntPtr.Zero;
-            EnumChildWindows(mainWindow, (hWnd, lParam) =>
+            logPath = logFile;
+            string processName = Path.GetFileNameWithoutExtension(launcherPath);
+
+            // One watcher at a time: a second double-click during startup would otherwise launch ADS twice.
+            bool isOnlyWatcher;
+            using (new Mutex(true, @"Local\AdsOffloadDisabler_" + processName, out isOnlyWatcher))
             {
-                var sb = new StringBuilder(256);
-                GetWindowText(hWnd, sb, 256);
-                if (sb.ToString() == "Disable Next Offload")
+                if (!isOnlyWatcher)
                 {
-                    checkbox = hWnd;
-                    return false;
+                    Log("Another watcher is already running; exiting.");
+                    return;
                 }
-                return true;
-            }, IntPtr.Zero);
-            return checkbox;
+                Watch(launcherPath, processName, timeoutSeconds, pollIntervalMs);
+            }
         }
 
-        // Launches ADS (if needed), ticks "Disable Next Offload" once its window appears,
-        // then keeps watching for as long as ADS stays open: every pollIntervalMs it
-        // re-checks the box, so it flips it back on any time ADS auto-unchecks it
-        // after processing a connection/offload.
-        public static string Run(string launcherPath, int timeoutSeconds, int pollIntervalMs)
+        private static void Watch(string launcherPath, string processName, int timeoutSeconds, int pollIntervalMs)
         {
-            var deadline = DateTime.Now.AddSeconds(timeoutSeconds);
+            DateTime deadline = DateTime.Now.AddSeconds(timeoutSeconds);
 
-            Process target = null;
-            foreach (var p in Process.GetProcessesByName("AtlasDataServer"))
+            Process ads = FindProcessWithWindow(processName);
+            if (ads == null)
             {
-                if (p.MainWindowHandle != IntPtr.Zero) { target = p; break; }
-            }
-
-            if (target == null && !string.IsNullOrEmpty(launcherPath))
-            {
-                try
+                Log("Starting " + launcherPath);
+                using (Process.Start(new ProcessStartInfo(launcherPath)
                 {
-                    Process.Start(new ProcessStartInfo(launcherPath)
+                    UseShellExecute = true,
+                    WorkingDirectory = Path.GetDirectoryName(launcherPath)
+                })) { }
+            }
+            while (ads == null && DateTime.Now < deadline)
+            {
+                Thread.Sleep(500);
+                ads = FindProcessWithWindow(processName);
+            }
+            if (ads == null)
+                throw new InvalidOperationException("ADS didn't open a window within " + timeoutSeconds + " seconds.");
+
+            using (ads)
+            {
+                Log("Watching ADS (PID " + ads.Id + ").");
+
+                IntPtr checkbox = IntPtr.Zero;
+                while (checkbox == IntPtr.Zero && !ads.HasExited && DateTime.Now < deadline)
+                {
+                    checkbox = FindCheckbox(ads);
+                    if (checkbox == IntPtr.Zero) Thread.Sleep(500);
+                }
+                if (checkbox == IntPtr.Zero && !ads.HasExited)
+                    throw new InvalidOperationException("Couldn't find the '" + CheckboxText +
+                        "' checkbox in ADS - its label may have changed in an ADS update.");
+
+                while (!ads.HasExited)
+                {
+                    if (!IsOffloadCheckbox(checkbox, ads.Id))
+                        checkbox = FindCheckbox(ads);
+
+                    // Re-validate after reading: BM_GETCHECK to a window destroyed mid-send reads back as 0.
+                    if (checkbox != IntPtr.Zero && GetCheckState(checkbox) == 0 && IsOffloadCheckbox(checkbox, ads.Id))
                     {
-                        UseShellExecute = true,
-                        WorkingDirectory = System.IO.Path.GetDirectoryName(launcherPath)
-                    });
+                        if (Click(checkbox)) Log("Ticked '" + CheckboxText + "'.");
+                        else Log("ADS didn't respond to the tick; will retry.");
+                    }
+                    Thread.Sleep(pollIntervalMs);
                 }
-                catch (Exception ex)
-                {
-                    return "launch-failed: " + ex.Message;
-                }
+                Log("ADS closed.");
             }
+        }
 
-            while (target == null && DateTime.Now < deadline)
+        private static Process FindProcessWithWindow(string processName)
+        {
+            Process match = null;
+            foreach (Process p in Process.GetProcessesByName(processName))
             {
-                foreach (var p in Process.GetProcessesByName("AtlasDataServer"))
-                {
-                    if (p.MainWindowHandle != IntPtr.Zero) { target = p; break; }
-                }
-                if (target == null) Thread.Sleep(500);
+                if (match == null && CurrentMainWindow(p) != IntPtr.Zero) match = p;
+                else p.Dispose();
             }
-            if (target == null) return "no-window";
+            return match;
+        }
 
-            IntPtr checkbox = IntPtr.Zero;
-            while (checkbox == IntPtr.Zero && DateTime.Now < deadline)
-            {
-                checkbox = FindCheckbox(target.MainWindowHandle);
-                if (checkbox == IntPtr.Zero) Thread.Sleep(500);
-            }
-            if (checkbox == IntPtr.Zero) return "no-checkbox";
+        private static IntPtr CurrentMainWindow(Process p)
+        {
+            p.Refresh();
+            try { return p.MainWindowHandle; }
+            catch (InvalidOperationException) { return IntPtr.Zero; } // process exited mid-query
+        }
 
-            int clickCount = 0;
-            while (!target.HasExited)
+        private static IntPtr FindCheckbox(Process ads)
+        {
+            IntPtr mainWindow = CurrentMainWindow(ads);
+            IntPtr found = IntPtr.Zero;
+            if (mainWindow == IntPtr.Zero) return found;
+
+            int pid = ads.Id;
+            EnumChildWindows(mainWindow, (hWnd, lParam) =>
             {
-                int state = SendMessage(checkbox, BM_GETCHECK, 0, 0);
-                if (state == 0)
-                {
-                    SendMessage(checkbox, BM_CLICK, 0, 0);
-                    clickCount++;
-                }
-                Thread.Sleep(pollIntervalMs);
-            }
-            return "watched, re-clicked " + clickCount + " time(s), ADS closed";
+                if (!IsOffloadCheckbox(hWnd, pid)) return true;
+                found = hWnd;
+                return false;
+            }, IntPtr.Zero);
+            return found;
+        }
+
+        // Re-validated every poll because a destroyed HWND's value can be reused by an unrelated window.
+        private static bool IsOffloadCheckbox(IntPtr hWnd, int processId)
+        {
+            uint owner;
+            if (GetWindowThreadProcessId(hWnd, out owner) == 0 || owner != processId) return false;
+
+            var text = new StringBuilder(64);
+            GetWindowText(hWnd, text, text.Capacity);
+            return text.ToString() == CheckboxText;
+        }
+
+        private static int? GetCheckState(IntPtr checkbox)
+        {
+            IntPtr state;
+            if (SendMessageTimeout(checkbox, BM_GETCHECK, IntPtr.Zero, IntPtr.Zero,
+                    SMTO_ABORTIFHUNG, SendTimeoutMs, out state) == IntPtr.Zero)
+                return null;
+            return state.ToInt32();
+        }
+
+        private static bool Click(IntPtr checkbox)
+        {
+            IntPtr ignored;
+            return SendMessageTimeout(checkbox, BM_CLICK, IntPtr.Zero, IntPtr.Zero,
+                SMTO_ABORTIFHUNG, SendTimeoutMs, out ignored) != IntPtr.Zero;
+        }
+
+        private static void Log(string message)
+        {
+            File.AppendAllText(logPath, DateTime.Now.ToString("o") + "  " + message + Environment.NewLine);
         }
     }
 }
 '@
 
-$refs = @(
-    ([System.Reflection.Assembly]::GetAssembly([System.Diagnostics.Process])).Location,
-    ([System.Reflection.Assembly]::GetAssembly([string])).Location
-) | Select-Object -Unique
-
-Add-Type -TypeDefinition $source -Language CSharp -ReferencedAssemblies $refs
-$PollIntervalMs = 1000
-$result = [AdsAuto.OffloadDisabler]::Run($LauncherPath, $TimeoutSeconds, $PollIntervalMs)
-"$(Get-Date -Format o)  $result" | Out-File -FilePath "$PSScriptRoot\run.log" -Append -Encoding utf8
+try {
+    $refs = [System.Diagnostics.Process], [string], [System.Threading.Mutex], [System.IO.File] |
+        ForEach-Object { $_.Assembly.Location } | Select-Object -Unique
+    Add-Type -TypeDefinition $source -Language CSharp -ReferencedAssemblies $refs
+    [AdsAuto.OffloadDisabler]::Run($LauncherPath, $TimeoutSeconds, $PollIntervalMs, $LogPath)
+}
+catch {
+    $message = $_.Exception.GetBaseException().Message
+    [System.IO.File]::AppendAllText($LogPath, "$(Get-Date -Format o)  ERROR: $message`r`n")
+    $warningTopmost = 0x30 -bor 0x1000
+    $null = (New-Object -ComObject WScript.Shell).Popup(
+        "Stopped watching ADS:`n`n$message`n`nTick 'Disable Next Offload' manually for now. Details: $LogPath",
+        0, 'ADS Offload Disabler', $warningTopmost)
+}
