@@ -1,5 +1,7 @@
 # ADS Offload Disabler
 
+NOT APPROVED BY MOTION APPLIED
+
 Atlas Data Server (ADS) has a "Disable Next Offload" checkbox on its main
 window that resets to unchecked every time the app opens, and unchecks
 itself again after each connection/offload completes. There's no persisted
