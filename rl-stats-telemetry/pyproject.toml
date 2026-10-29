@@ -1,0 +1,19 @@
+[build-system]
+requires = ["setuptools>=64"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "rltelemetry"
+version = "0.1.0"
+description = "Rocket League Stats API listener, per-match JSONL logger and telemetry channel mapper"
+requires-python = ">=3.10"
+dependencies = []
+
+[project.optional-dependencies]
+ws = ["websockets>=13"]
+
+[project.scripts]
+rltelemetry = "rltelemetry.__main__:main"
+
+[tool.setuptools.packages.find]
+include = ["rltelemetry*"]
